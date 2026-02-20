@@ -21,6 +21,12 @@ Da ich die App aktuell auf **Android** entwickle, freue ich mich besonders über
 - **iOS-Testing:** Da ich kein macOS/iOS-Setup habe, ist Hilfe beim Testen auf iPhones sehr willkommen.
 - **UI/UX:** Vorschläge für ein noch intuitiveres Design.
 - **Refactoring:** Hilfe bei der Aufteilung der großen `main.dart` in kleinere Module.
+## 🌱 Ein Wort an die Community
+Ich bin noch ein **Anfänger** im Bereich Flutter und App-Entwicklung. Dieses Projekt ist mein Herzensprojekt, um zu lernen. 
+Wenn du helfen möchtest:
+- **Sei bitte geduldig:** Ich lerne noch, wie man Code strukturiert.
+- **Erklärungen sind willkommen:** Wenn du einen Pull Request stellst, erkläre mir gerne kurz, *warum* du den Code so geändert hast, damit ich daraus lernen kann.
+- **Keine Scheu:** Jeder Tipp, egal wie klein, hilft mir weiter!
 
 ## 🚀 Setup
 1. `git clone https://github.com/FGSeRaser/family_budget.git`
