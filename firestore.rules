@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    function isMember(familyId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid));
+    }
+
+    function isOwner(familyId) {
+      return isMember(familyId) &&
+        get(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)).data.role in ["owner","admin"];
+    }
+
+    // CODE -> FAMILY
+    match /familyCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && request.resource.data.familyId is string;
+      allow update: if false;
+      allow delete: if signedIn();
+    }
+
+    match /families/{familyId} {
+      allow create: if signedIn();
+      allow get: if isMember(familyId);
+      allow list: if false;
+      allow update: if isOwner(familyId);
+      allow delete: if false;
+
+      match /members/{uid} {
+        allow get, list: if isMember(familyId);
+        allow create, update, delete: if isOwner(familyId);
+      }
+
+      match /joinRequests/{uid} {
+        allow create: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.status == "pending";
+
+        allow get: if signedIn() && request.auth.uid == uid;
+        allow list, read: if isOwner(familyId);
+        allow update: if isOwner(familyId);
+        allow delete: if (signedIn() && request.auth.uid == uid) || isOwner(familyId);
+      }
+
+      match /categories/{categoryId} {
+        allow read: if isMember(familyId);
+        allow write: if isMember(familyId); // 
+      }
+
+      match /payments/{paymentId} {
+        allow read, write: if isMember(familyId);
+      }
+
+      match /transactions/{txId} {
+        allow read, write: if isMember(familyId);
+      }
+
+      match /taxProfiles/{profileId} {
+        allow read, write: if isMember(familyId);
+      }
+
+      match /work/{uid} {
+        allow get, list: if isMember(familyId);
+        match /days/{dayId} {
+          allow read: if isMember(familyId);
+          allow create, update, delete: if isMember(familyId) && request.auth.uid == uid;
+        }
+      }
+
+      match /budgets/{budgetId} {
+        allow read, write: if isMember(familyId);
+      }
+
+      match /incomeEntries/{entryId} {
+        allow read, write: if isMember(familyId);
+      }
+    }
+  }
+}
