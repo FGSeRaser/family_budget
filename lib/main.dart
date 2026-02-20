@@ -3076,35 +3076,6 @@ class WaitingApprovalScreen extends StatelessWidget {
                 ),
                 const Spacer(),
                 FilledButton.icon(
-                  onPressed: () async {
-                    final ok = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Anfrage zurückziehen?'),
-                        content: const Text('Deine Beitrittsanfrage wird gelöscht. Du kannst später erneut beitreten.'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
-                          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Zurückziehen')),
-                        ],
-                      ),
-                    );
-                    if (ok == true) {
-                      try {
-                        await reqDoc.delete();
-                      } catch (_) {}
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Anfrage zurückgezogen.')),
-                        );
-                        Navigator.pop(context);
-                      }
-                    }
-                  },
-                  icon: const Icon(Icons.undo),
-                  label: const Text('Anfrage zurückziehen'),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.arrow_back),
                   label: const Text('Zurück'),
@@ -6396,80 +6367,6 @@ const SizedBox(height: 16),
                   ),
                 ),
               ),
-              // -------- Beitrittsanfragen (Owner/Admin) --------
-              StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                stream: FirebaseFirestore.instance
-                    .collection('families')
-                    .doc(widget.familyId)
-                    .collection('members')
-                    .doc(FirebaseAuth.instance.currentUser?.uid ?? '_')
-                    .snapshots(),
-                builder: (context, meSnap2) {
-                  final myData2 = (meSnap2.data?.data()) ?? <String, dynamic>{};
-                  final role2 = (myData2['role'] ?? 'member').toString();
-                  final canManage2 = role2 == 'owner' || role2 == 'admin';
-
-                  if (!canManage2) return const SizedBox.shrink();
-
-                  final pendingStream = FirebaseFirestore.instance
-                      .collection('families')
-                      .doc(widget.familyId)
-                      .collection('joinRequests')
-                      .where('status', isEqualTo: 'pending')
-                      .snapshots();
-
-                  return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: pendingStream,
-                    builder: (context, reqSnap2) {
-                      final pendingCount = reqSnap2.data?.docs.length ?? 0;
-
-                      return Card(
-                        child: ListTile(
-                          leading: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              const Icon(Icons.person_add_alt_1),
-                              if (pendingCount > 0)
-                                Positioned(
-                                  right: -6,
-                                  top: -6,
-                                  child: CircleAvatar(
-                                    radius: 10,
-                                    backgroundColor: Colors.red,
-                                    child: Text(
-                                      pendingCount > 99 ? '99+' : pendingCount.toString(),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          title: const Text('Beitrittsanfragen'),
-                          subtitle: Text(
-                            pendingCount == 0 ? 'Keine offenen Anfragen' : '$pendingCount offen',
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => JoinRequestsScreen(familyId: widget.familyId),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-
-
               
               // -------- Mitglieder --------
               Card(
