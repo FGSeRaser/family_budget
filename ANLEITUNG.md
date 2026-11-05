@@ -29,12 +29,31 @@ Damit funktioniert „Konto sichern“. Nach einer Neuinstallation oder auf eine
 - Am Ende liegt **`FamilyBudget-2.2.apk`** im Ordner. Aufs Handy kopieren und installieren.
   Die App wird dabei aktualisiert, deine Daten bleiben erhalten.
 
+## 5. Automatisch bauen + Updates (neu in 2.2)
+Ab 2.2 baut **GitHub** die APK selbst, signiert sie immer mit **deinem eigenen Schlüssel** und stellt sie als Release online.
+Die App meldet neue Versionen dann von selbst (beim Start, höchstens alle 6 Stunden) oder unter **Einstellungen → Nach Updates suchen**.
+
+**Einmalig einrichten:**
+1. In deinem Ordner liegen jetzt `familybudget-release.jks` (der Schlüssel) und `android\key.properties` (das Passwort).
+   👉 **Beides sicher aufheben** (USB-Stick/Cloud)! Ohne diesen Schlüssel lassen sich keine Updates mehr drüberinstallieren.
+2. Doppelklick auf **`GITHUB_SECRETS_EINRICHTEN.bat`** – trägt die 6 Secrets bei GitHub ein
+   (automatisch mit GitHub-CLI, sonst Schritt für Schritt per Zwischenablage im Browser).
+3. Fertig. Ab jetzt: **Version in `pubspec.yaml` erhöhen → auf GitHub hochladen** → GitHub baut unter **Actions** die APK
+   und erstellt das Release `vX.Y.Z`. Die Handys bekommen das Update angeboten.
+
+**Einmalige Umstellung auf den neuen Schlüssel:** Die alte 2.1 war mit dem Debug-Schlüssel vom PC signiert.
+Deshalb vor der ersten 2.2 einmal: in der alten App **Konto sichern** (E-Mail) → App deinstallieren → 2.2 installieren →
+mit **„Ich habe ein gesichertes Konto (E-Mail)“** anmelden. Danach laufen alle Updates direkt drüber.
+
+`APK_BAUEN.bat` signiert lokal ebenfalls mit dem neuen Schlüssel (über `android\key.properties`).
+
 ## Neu in 2.2
 | Bereich | Neu |
 |---|---|
 | Themes | **10 kräftige Themes** (Blood Moon, Neon Nights, AMOLED Gold, Matrix, Synthwave, Polarlicht, Sunset Blaze, Tropical, Royal Blue, Candy). Auswahl mit Farbvorschau unter **Einstellungen → Themen**. |
 | Kosten | Die App lädt nur noch den gewählten Monat statt aller Buchungen – deutlich weniger Firebase-Lesevorgänge. |
 | Sicherheit | Einladungs-QRs kann nur noch die eigene Familie löschen. |
+| Updates | GitHub baut die APK automatisch, die App meldet neue Versionen und installiert sie nach einer Warnung. |
 
 ## Neu in 2.1
 | Bereich | Neu |

@@ -28,6 +28,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'firebase_options.dart';
 import 'payroll_de.dart';
+import 'updater.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -4676,6 +4677,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       } catch (_) {}
       await NotificationService.requestPermission();
       await rescheduleAllReminders(famRef);
+      // v2.2: Nach Updates auf GitHub suchen (höchstens alle 6 Stunden)
+      if (mounted) await AppUpdater.checkOnStart(context);
     });
   }
 
@@ -9191,6 +9194,18 @@ class _SettingsTabState extends State<SettingsTab> {
                       ),
                     ],
                   ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ===== App-Update (v2.2) =====
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.system_update),
+                  title: const Text('Nach Updates suchen'),
+                  subtitle: const Text('Neue Versionen kommen von github.com/FGSeRaser/family_budget'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => AppUpdater.checkManually(context),
                 ),
               ),
               const SizedBox(height: 16),

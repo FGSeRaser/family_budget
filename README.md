@@ -18,6 +18,9 @@ Diese Flutter-App ermöglicht es Familien und WGs, ihre Finanzen, Budgets und Ar
 - **Kontostand-Prognose:** Startsaldo + alle Buchungen bis Monatsende.
 - **Konto sichern:** Optional mit E-Mail, damit man nach Neuinstallation wieder reinkommt.
 
+## 📲 Installieren
+Die neueste APK gibt es unter [Releases](https://github.com/FGSeRaser/family_budget/releases/latest).
+
 ## 🛠 Tech-Stack
 - **Framework:** Flutter (Dart)
 - **Backend:** Firebase (Firestore, Auth)
@@ -44,6 +47,8 @@ Wenn du helfen möchtest:
 5. In Firebase unter **Authentication → Sign-in method** „Anonym“ und „E-Mail/Passwort“ einschalten.
 
 ## 📝 Änderungen in 2.2
+- **Automatische Updates:** GitHub baut die signierte APK unter *Actions* und erstellt ein Release. Die App meldet neue Versionen, warnt vorher und installiert das Update (Einstellungen → Nach Updates suchen).
+- **Eigener Release-Schlüssel:** Alle APKs haben dieselbe Signatur, damit Updates sich drüberinstallieren lassen.
 - **10 neue kräftige Themes:** Blood Moon, Neon Nights, AMOLED Gold, Matrix, Synthwave, Polarlicht, Sunset Blaze, Tropical, Royal Blue, Candy – mit farbiger Kopfleiste, Farbverlauf im Hintergrund und leuchtenden Karten.
 - **Neue Theme-Auswahl** mit Farbvorschau (Einstellungen → Themen).
 - **Weniger Firestore-Lesevorgänge:** Übersicht, Zahlungen, Budgets und Jahresbericht laden nur noch den gewählten Monat bzw. das Jahr statt aller Buchungen. Die Kontostand-Prognose rechnet Firestore selbst als Summe aus. Das hält die App bei vielen Nutzern im kostenlosen Firebase-Plan.

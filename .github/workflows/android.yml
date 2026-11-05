@@ -1,16 +1,29 @@
-# Prüft den Code und baut die APK automatisch bei jedem Hochladen.
+# Prüft den Code, baut die signierte APK und erstellt automatisch ein Release.
 # von FGSeRaser (https://github.com/FGSeRaser)
 #
-# Für die fertige APK zwei Secrets anlegen (Repo -> Settings -> Secrets and variables -> Actions):
-#   GOOGLE_SERVICES_JSON   = Inhalt von android/app/google-services.json als Base64
-#   FIREBASE_OPTIONS_DART  = Inhalt von lib/firebase_options.dart als Base64
-# Ohne Secrets wird nur geprüft (analyze + test), aber keine APK gebaut.
+# Benötigte Secrets (Repo -> Settings -> Secrets and variables -> Actions),
+# am einfachsten mit GITHUB_SECRETS_EINRICHTEN.bat anlegen:
+#   GOOGLE_SERVICES_JSON   = android/app/google-services.json als Base64
+#   FIREBASE_OPTIONS_DART  = lib/firebase_options.dart als Base64
+#   KEYSTORE_BASE64        = familybudget-release.jks als Base64
+#   KEYSTORE_PASSWORD      = Passwort des Schlüssels
+#   KEY_ALIAS              = familybudget
+#   KEY_PASSWORD           = Passwort des Schlüssels (gleich wie oben)
+#
+# Ablauf:
+#   - Jeder Push: Code prüfen + Tests
+#   - Mit Secrets: signierte APK bauen (unter Actions -> Artifacts)
+#   - Push auf main mit neuer Version in pubspec.yaml: Release "vX.Y.Z" mit APK
+#     -> die App findet das Update automatisch.
 name: Android APK
 
 on:
   push:
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -28,10 +41,11 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Firebase-Dateien einsetzen
+      - name: Firebase-Dateien und Schlüssel einsetzen
         env:
           FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           if [ -n "$FIREBASE_OPTIONS_DART" ]; then
             echo "$FIREBASE_OPTIONS_DART" | base64 -d > lib/firebase_options.dart
@@ -42,6 +56,14 @@ jobs:
             echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
             echo "HAS_FIREBASE=true" >> "$GITHUB_ENV"
           fi
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "FB_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "HAS_KEYSTORE=true" >> "$GITHUB_ENV"
+          fi
+          VERSION=$(grep -E '^version:' pubspec.yaml | sed -E 's/version:[[:space:]]*([^+[:space:]]+).*/\1/')
+          echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Version: $VERSION"
 
       - run: flutter pub get
 
@@ -58,13 +80,60 @@ jobs:
       - name: Tests
         run: flutter test
 
-      - name: APK bauen
-        if: env.HAS_FIREBASE == 'true'
-        run: flutter build apk --release
+      # Ohne eigenen Schlüssel wird NICHT gebaut, damit nie eine APK mit falscher Signatur rausgeht.
+      - name: APK bauen (signiert)
+        if: env.HAS_FIREBASE == 'true' && env.HAS_KEYSTORE == 'true'
+        env:
+          FB_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          FB_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          FB_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk "FamilyBudget-${APP_VERSION}.apk"
+          sha256sum "FamilyBudget-${APP_VERSION}.apk" | tee "FamilyBudget-${APP_VERSION}.apk.sha256"
 
-      - name: APK hochladen
-        if: env.HAS_FIREBASE == 'true'
+      - name: Signatur prüfen
+        if: env.HAS_FIREBASE == 'true' && env.HAS_KEYSTORE == 'true'
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs "FamilyBudget-${APP_VERSION}.apk" | tee signatur.txt
+          if grep -qi "CN=Android Debug" signatur.txt; then
+            echo "::error::APK ist mit dem Debug-Schlüssel signiert!"
+            exit 1
+          fi
+
+      - name: APK hochladen (Artifacts)
+        if: env.HAS_FIREBASE == 'true' && env.HAS_KEYSTORE == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: FamilyBudget-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: FamilyBudget-${{ env.APP_VERSION }}-APK
+          path: FamilyBudget-${{ env.APP_VERSION }}.apk
+
+      - name: Gibt es das Release schon?
+        if: github.ref == 'refs/heads/main' && env.HAS_FIREBASE == 'true' && env.HAS_KEYSTORE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${APP_VERSION}" > /dev/null 2>&1; then
+            echo "Release v${APP_VERSION} gibt es schon - für ein neues Release die Version in pubspec.yaml erhöhen."
+          else
+            echo "NEW_RELEASE=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Release erstellen
+        if: env.NEW_RELEASE == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.APP_VERSION }}
+          name: FamilyBudget ${{ env.APP_VERSION }}
+          body: |
+            ## FamilyBudget ${{ env.APP_VERSION }}
+            von [FGSeRaser](https://github.com/FGSeRaser)
+
+            **Installieren:** `FamilyBudget-${{ env.APP_VERSION }}.apk` herunterladen und auf dem Handy öffnen.
+            **Update:** Die App meldet neue Versionen selbst und installiert sie auf Wunsch.
+
+            Was neu ist, steht in der [README](https://github.com/FGSeRaser/family_budget#readme).
+          files: |
+            FamilyBudget-${{ env.APP_VERSION }}.apk
+            FamilyBudget-${{ env.APP_VERSION }}.apk.sha256

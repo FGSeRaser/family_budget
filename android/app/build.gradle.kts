@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,6 +8,19 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 	id("com.google.gms.google-services")
 }
+
+// Release-Signatur (von FGSeRaser, github.com/FGSeRaser)
+// Reihenfolge: 1) GitHub Actions (Umgebungsvariablen)  2) android/key.properties (lokal)  3) Debug-Schlüssel
+// Wichtig: Updates lassen sich nur drüberinstallieren, wenn IMMER derselbe Schlüssel benutzt wird.
+val keyProps = Properties().apply {
+    val f = rootProject.file("key.properties")
+    if (f.exists()) load(FileInputStream(f))
+}
+val releaseStoreFile: String? = System.getenv("FB_KEYSTORE_PATH") ?: keyProps.getProperty("storeFile")
+val releaseStorePassword: String? = System.getenv("FB_KEYSTORE_PASSWORD") ?: keyProps.getProperty("storePassword")
+val releaseKeyAlias: String? = System.getenv("FB_KEY_ALIAS") ?: keyProps.getProperty("keyAlias")
+val releaseKeyPassword: String? = System.getenv("FB_KEY_PASSWORD") ?: keyProps.getProperty("keyPassword")
+val hasReleaseKey = !releaseStoreFile.isNullOrBlank() && file(releaseStoreFile!!).exists()
 
 android {
     namespace = "com.example.familybudget"
@@ -33,11 +49,21 @@ compileOptions {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseKey) {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Mit eigenem Release-Schlüssel signieren, sonst (nur zum Testen) mit Debug-Schlüssel
+            signingConfig = if (hasReleaseKey) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

@@ -23,6 +23,9 @@
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
 
+    <!-- Auto-Update: neue APK von GitHub installieren -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+
     <application
         android:label="FamilyBudget"
         android:name="${applicationName}"
