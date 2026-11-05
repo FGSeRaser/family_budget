@@ -34,3 +34,5 @@ android/bundle
 android/key.properties
 *.jks
 *.keystore
+# Firebase Hosting Cache
+.firebase/
