@@ -3389,6 +3389,9 @@ class ThemeStore {
 
 final ValueNotifier<AppTheme> themeNotifier = ValueNotifier<AppTheme>(AppTheme.azureOrange);
 
+/// Öffentlich für Tests.
+ThemeData buildAppTheme(AppTheme theme) => _buildTheme(theme);
+
 ThemeData _buildTheme(AppTheme theme) {
   final strong = strongThemes[theme];
   if (strong != null) return _buildStrongTheme(strong);
