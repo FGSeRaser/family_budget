@@ -46,6 +46,10 @@ Wenn du helfen möchtest:
 4. Firestore Regeln aus der Datei `firestore.rules` übernehmen (`firebase deploy --only firestore:rules`).
 5. In Firebase unter **Authentication → Sign-in method** „Anonym“ und „E-Mail/Passwort“ einschalten.
 
+## 📝 Änderungen in 2.2.1
+- Backup, Export, Import und „Konto sichern“ zeigen Fehler jetzt als Fenster mit der echten Meldung (vorher brach es teils still ab).
+- „Bitte warten“-Hinweis, während Daten für Backup/Export geladen werden.
+
 ## 📝 Änderungen in 2.2
 - **Automatische Updates:** GitHub baut die signierte APK unter *Actions* und erstellt ein Release. Die App meldet neue Versionen, warnt vorher und installiert das Update (Einstellungen → Nach Updates suchen).
 - **Eigener Release-Schlüssel:** Alle APKs haben dieselbe Signatur, damit Updates sich drüberinstallieren lassen.

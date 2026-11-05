@@ -3582,6 +3582,49 @@ Future<void> rememberFamilyForUser(String familyId, {String? name}) async {
   }
 }
 
+/// v2.2.1: Führt eine Aktion aus und zeigt Fehler als Fenster an (statt still abzubrechen).
+/// Zeigt außerdem "Bitte warten", während Daten geladen werden.
+Future<T?> runGuarded<T>(BuildContext context, String what, Future<T> Function() action) async {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  messenger?.showSnackBar(SnackBar(
+    content: Text('$what … bitte warten'),
+    duration: const Duration(seconds: 2),
+  ));
+  try {
+    return await action();
+  } catch (e, st) {
+    debugPrint('$what fehlgeschlagen: $e\n$st');
+    messenger?.hideCurrentSnackBar();
+    if (!context.mounted) return null;
+    var msg = authErrorDe(e);
+    if (e is FirebaseException && e.code == 'permission-denied') {
+      msg = 'Firestore hat den Zugriff verweigert (permission-denied).\n'
+          'Bitte die Regeln aus firestore.rules mit REGELN_HOCHLADEN.bat neu hochladen.\n\n$msg';
+    } else if (e is FirebaseException) {
+      msg = '${e.plugin}/${e.code}: ${e.message ?? ''}';
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (c) => AlertDialog(
+        icon: const Icon(Icons.error_outline, color: Colors.red, size: 36),
+        title: Text('$what fehlgeschlagen'),
+        content: SingleChildScrollView(child: SelectableText(msg)),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: '$what: $e'));
+              Navigator.pop(c);
+            },
+            child: const Text('Fehler kopieren'),
+          ),
+          FilledButton(onPressed: () => Navigator.pop(c), child: const Text('OK')),
+        ],
+      ),
+    );
+    return null;
+  }
+}
+
 String authErrorDe(Object e) {
   if (e is FirebaseAuthException) {
     switch (e.code) {
@@ -4233,7 +4276,8 @@ class _FamilyJoinScreenState extends State<FamilyJoinScreen> {
                 onPressed: busy
                     ? null
                     : () async {
-          final fid = await importEncryptedBackup(context: context, memberName: nameC.text.trim());
+          final fid = await runGuarded(context, 'Backup importieren',
+              () => importEncryptedBackup(context: context, memberName: nameC.text.trim()));
                         if (fid != null && context.mounted) {
                           Navigator.of(context).pushAndRemoveUntil(
                             MaterialPageRoute(builder: (_) => const BootGate()),
@@ -9251,7 +9295,16 @@ class _SettingsTabState extends State<SettingsTab> {
                                   }
                                 } catch (e) {
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(authErrorDe(e))));
+                                    // v2.2.1: Fehler als Fenster, damit man ihn sicher sieht
+                                    await showDialog<void>(
+                                      context: context,
+                                      builder: (c) => AlertDialog(
+                                        icon: const Icon(Icons.error_outline, color: Colors.red, size: 36),
+                                        title: const Text('Konto sichern fehlgeschlagen'),
+                                        content: SelectableText(authErrorDe(e)),
+                                        actions: [FilledButton(onPressed: () => Navigator.pop(c), child: const Text('OK'))],
+                                      ),
+                                    );
                                   }
                                 }
                               },
@@ -9413,9 +9466,9 @@ class _SettingsTabState extends State<SettingsTab> {
                               final from = DateTime(picked.year, picked.month, 1);
                               final to = DateTime(picked.year, picked.month + 1, 1);
                               final base = 'familybudget_${picked.year}_${picked.month.toString().padLeft(2,'0')}';
-                              await exportPaymentsZip(
+                              await runGuarded(context, 'Export', () => exportPaymentsZip(
                                 context: context, famRef: widget.famRef, fromInclusive: from, toExclusive: to, filenameBase: base,
-                              );
+                              ));
                             },
                           ),
                           ElevatedButton.icon(
@@ -9454,23 +9507,25 @@ class _SettingsTabState extends State<SettingsTab> {
                               final from = DateTime(year, 1, 1);
                               final to = DateTime(year + 1, 1, 1);
                               final base = 'familybudget_${year}_jahr';
-                              await exportPaymentsZip(
+                              await runGuarded(context, 'Export', () => exportPaymentsZip(
                                 context: context, famRef: widget.famRef, fromInclusive: from, toExclusive: to, filenameBase: base,
-                              );
+                              ));
                             },
                           ),
                           ElevatedButton.icon(
                             icon: const Icon(Icons.lock),
                             label: const Text('Backup exportieren'),
                             onPressed: () async {
-                              await exportEncryptedBackup(context: context, famRef: widget.famRef);
+                              await runGuarded(context, 'Backup exportieren',
+                                  () => exportEncryptedBackup(context: context, famRef: widget.famRef));
                             },
                           ),
                           ElevatedButton.icon(
                             icon: const Icon(Icons.restore),
                             label: const Text('Backup importieren'),
                             onPressed: () async {
-                              final fid = await importEncryptedBackup(context: context, targetFamRef: widget.famRef);
+                              final fid = await runGuarded(context, 'Backup importieren',
+                                  () => importEncryptedBackup(context: context, targetFamRef: widget.famRef));
                               if (fid != null && context.mounted) {
                                 Navigator.of(context).pushAndRemoveUntil(
                                   MaterialPageRoute(builder: (_) => const BootGate()),
