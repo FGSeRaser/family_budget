@@ -5,6 +5,8 @@
 .pub-cache/
 .packages
 build/
+*.apk
+analyze.txt
 
 # Firebase & Geheimnisse (SEHR WICHTIG)
 ios/Runner/GoogleService-Info.plist
